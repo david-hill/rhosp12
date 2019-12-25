@@ -1,36 +1,27 @@
+# NOTE: This is an environment specific for containers CI. Mainly we
+# deploy non-pacemakerized overcloud. Once we are able to deploy and
+# upgrade pacemakerized and containerized overcloud, we should remove
+# this file and use normal CI multinode environments/scenarios.
+
 resource_registry:
   OS::TripleO::Controller::Net::SoftwareConfig: ../common/net-config-multinode.yaml
   OS::TripleO::Compute::Net::SoftwareConfig: ../common/net-config-multinode.yaml
+  # TODO deploy ceph with ceph-ansible: https://review.openstack.org/#/c/465066/
   OS::TripleO::Services::CephMon: ../../docker/services/ceph-ansible/ceph-mon.yaml
   OS::TripleO::Services::CephOSD: ../../docker/services/ceph-ansible/ceph-osd.yaml
   OS::TripleO::Services::CephClient: ../../docker/services/ceph-ansible/ceph-client.yaml
   OS::TripleO::Services::PankoApi: ../../docker/services/panko-api.yaml
   OS::TripleO::Services::Collectd: ../../docker/services/collectd.yaml
-  # TODO(mandre) fix the tacker service - https://bugs.launchpad.net/tripleo/+bug/1714270
-  # OS::TripleO::Services::Tacker: ../../docker/services/tacker.yaml
-  OS::TripleO::Services::Tacker: ../../puppet/services/tacker.yaml
   OS::TripleO::Services::Congress: ../../docker/services/congress.yaml
-  OS::TripleO::Services::RabbitMQ: ../../docker/services/pacemaker/rabbitmq.yaml
-  OS::TripleO::Services::HAproxy: ../../docker/services/pacemaker/haproxy.yaml
-  OS::TripleO::Services::Pacemaker: ../../puppet/services/pacemaker.yaml
-  OS::TripleO::Services::PacemakerRemote: ../../puppet/services/pacemaker_remote.yaml
-  OS::TripleO::Services::Clustercheck: ../../docker/services/pacemaker/clustercheck.yaml
-  OS::TripleO::Services::Redis: ../../docker/services/pacemaker/database/redis.yaml
-  OS::TripleO::Services::MySQL: ../../docker/services/pacemaker/database/mysql.yaml
-  # TODO(mandre) use the containerized service once we've reintroduced cinder
-  # OS::TripleO::Services::CinderBackup: ../../docker/services/pacemaker/cinder-backup.yaml
-  # OS::TripleO::Services::CinderVolume: ../../docker/services/pacemaker/cinder-volume.yaml
-  OS::TripleO::Services::CinderBackup: ../../puppet/services/pacemaker/cinder-backup.yaml
-  OS::TripleO::Services::CinderVolume: ../../puppet/services/pacemaker/cinder-volume.yaml
-  OS::TripleO::Services::Keepalived: OS::Heat::None
-  OS::TripleO::Tasks::ControllerPreConfig: OS::Heat::None
-  OS::TripleO::Tasks::ControllerPostConfig: OS::Heat::None
-  OS::TripleO::Tasks::ControllerPostPuppetRestart: ../../extraconfig/tasks/post_puppet_pacemaker_restart.yaml
-  OS::TripleO::Services::FluentdClient: ../../docker/services/fluentd-client.yaml
+  # FIXME(mandre) fluentd container image missing from tripleomaster registry
+  # https://bugs.launchpad.net/tripleo/+bug/1721723
+  # OS::TripleO::Services::FluentdClient: ../../docker/services/fluentd-client.yaml
+  OS::TripleO::Services::FluentdClient: ../../puppet/services/logging/fluentd-client.yaml
   OS::TripleO::Services::SensuClient: ../../docker/services/sensu-client.yaml
   # Some infra instances don't pass the ping test but are otherwise working.
   # Since the OVB jobs also test this functionality we can shut it off here.
   OS::TripleO::AllNodes::Validation: ../common/all-nodes-validation-disabled.yaml
+  OS::TripleO::Services::NovaMigrationTarget: OS::Heat::None
 
 parameter_defaults:
   ControllerServices:
@@ -91,39 +82,34 @@ parameter_defaults:
     - OS::TripleO::Services::CinderScheduler
     - OS::TripleO::Services::CinderVolume
     - OS::TripleO::Services::Collectd
-    - OS::TripleO::Services::Tacker
     - OS::TripleO::Services::Congress
     - OS::TripleO::Services::TripleoPackages
     - OS::TripleO::Services::TripleoFirewall
-    # FIXME(mandre/bandini) mixing BM fluentd and containers is problematic
-    # https://bugs.launchpad.net/tripleo/+bug/1726891
-    #- OS::TripleO::Services::FluentdClient
+    - OS::TripleO::Services::FluentdClient
     - OS::TripleO::Services::SensuClient
     - OS::TripleO::Services::Iscsid
 
   ControllerExtraConfig:
     nova::compute::libvirt::services::libvirt_virt_type: qemu
     nova::compute::libvirt::libvirt_virt_type: qemu
-    # NOTE(sileht): To decrease the time test_telemetry_integration takes We
-    # configure Ceilometer to poll more, We configure the 'high' Gnocchi
-    # archive policy to keep 1 point every 60s. The test will take 2 minutes
-    # instead of 10 minutes. Note that tempest telemetry.alarm_granularity must
-    # in sync with the archive policy, 60s too.
+    # This makes the job twice as fast
     ceilometer::agent::polling::polling_interval: 15
-  ManagePolling: true
-
   Debug: true
+  #NOTE(gfidente): not great but we need this to deploy on ext4
+  #http://docs.ceph.com/docs/jewel/rados/configuration/filesystem-recommendations/
   CephAnsibleDisksConfig:
     devices:
       - /dev/loop3
     journal_size: 512
     osd_scenario: collocated
-  CephPoolDefaultPgNum: 32
-  CephPoolDefaultSize: 1
   CephAnsibleExtraConfig:
+    ceph_conf_overrides:
+      global:
+        osd_pool_default_size: 1
+        osd_pool_default_pg_num: 32
+        osd_max_object_name_len: 256
+        osd_max_object_namespace_len: 64
     centos_package_dependencies: []
-    ceph_osd_docker_memory_limit: '1g'
-    ceph_mds_docker_memory_limit: '1g'
   CephAnsibleSkipTags: ''
   #NOTE: These ID's and keys should be regenerated for
   # a production deployment. What is here is suitable for
@@ -132,10 +118,8 @@ parameter_defaults:
   CephMonKey: 'AQC+Ox1VmEr3BxAALZejqeHj50Nj6wJDvs96OQ=='
   CephAdminKey: 'AQDLOh1VgEp6FRAAFzT7Zw+Y9V6JJExQAsRnRQ=='
   CephClientKey: 'AQC+vYNXgDAgAhAAc8UoYt+OTz5uhV7ItLdwUw=='
-  CephAnsiblePlaybookVerbosity: 1
-  CephAnsibleEnvironmentVariables:
-    ANSIBLE_SSH_RETRIES: '4'
-    DEFAULT_FORKS: '3'
+  CephPoolDefaultSize: 1
+  DockerCephDaemonImage: ceph/daemon:tag-stable-3.0-jewel-centos-7
   NovaEnableRbdBackend: true
   CinderEnableRbdBackend: true
   CinderBackupBackend: ceph

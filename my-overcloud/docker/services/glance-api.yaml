@@ -65,9 +65,6 @@ parameters:
     description: >
       NFS mount options for image storage (when GlanceNfsEnabled is true)
     type: string
-  CephClientUserName:
-    default: openstack
-    type: string
 
 conditions:
 
@@ -134,13 +131,6 @@ outputs:
             - path: /var/lib/glance
               owner: glance:glance
               recurse: true
-            - path:
-                str_replace:
-                  template: /etc/ceph/ceph.client.USER.keyring
-                  params:
-                    USER: {get_param: CephClientUserName}
-              owner: glance:glance
-              perm: '0600'
         /var/lib/kolla/config_files/glance_api_tls_proxy.json:
           command: /usr/sbin/httpd -DFOREGROUND
           config_files:
@@ -157,6 +147,7 @@ outputs:
             user: root
             volumes:
               - /var/log/containers/glance:/var/log/glance
+              - /var/log/containers/httpd/glance-api:/var/log/httpd
             command: ['/bin/bash', '-c', 'chown -R glance:glance /var/log/glance']
         step_3:
           glance_api_db_sync:
@@ -172,6 +163,7 @@ outputs:
                   - /var/lib/kolla/config_files/glance_api.json:/var/lib/kolla/config_files/config.json
                   - /var/lib/config-data/puppet-generated/glance_api/:/var/lib/kolla/config_files/src:ro
                   - /var/log/containers/glance:/var/log/glance
+                  - /var/log/containers/httpd/glance-api:/var/log/httpd
                   - /etc/ceph:/var/lib/kolla/config_files/src-ceph:ro
                   -
                     if:
@@ -234,13 +226,7 @@ outputs:
             state: directory
           with_items:
             - /var/log/containers/glance
-        - name: glance logs readme
-          copy:
-            dest: /var/log/glance/readme.txt
-            content: |
-              Log files from glance containers can be found under
-              /var/log/containers/glance.
-          ignore_errors: true
+            - /var/log/containers/httpd/glance-api
         - name: ensure ceph configurations exist
           file:
             path: /etc/ceph

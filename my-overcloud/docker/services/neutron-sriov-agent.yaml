@@ -80,7 +80,6 @@ outputs:
       docker_config:
         step_4:
           neutron_sriov_agent:
-            start_order: 10
             image: {get_param: DockerNeutronSriovImage}
             net: host
             pid: host
@@ -103,24 +102,7 @@ outputs:
           file:
             path: /var/log/containers/neutron
             state: directory
-        - name: neutron logs readme
-          copy:
-            dest: /var/log/neutron/readme.txt
-            content: |
-              Log files from neutron containers can be found under
-              /var/log/containers/neutron and /var/log/containers/httpd/neutron-api.
-          ignore_errors: true
       upgrade_tasks:
-        - name: Check if neutron_sriov_nic_agent is deployed
-          command: systemctl is-enabled --quiet neutron-sriov-nic-agent
-          tags: common
-          ignore_errors: True
-          register: neutron_sriov_nic_agent_enabled
-        - name: "PreUpgrade step0,validation: Check service neutron-sriov-nic-agent is running"
-          command: systemctl is-active --quiet neutron-sriov-nic-agent
-          when: neutron_sriov_nic_agent_enabled.rc == 0
-          tags: step0,validation
         - name: Stop and disable neutron_sriov_agent service
           tags: step2
-          when: neutron_sriov_nic_agent_enabled.rc == 0
           service: name=neutron-sriov-nic-agent state=stopped enabled=no

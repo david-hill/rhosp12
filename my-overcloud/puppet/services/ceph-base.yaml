@@ -129,9 +129,7 @@ outputs:
                 cap_mon: 'allow profile bootstrap-osd'
               CEPH_CLIENT_KEY:
                 secret: {get_param: CephClientKey}
-                mode: '0640'
-                user: 'ceph'
-                group: 'ceph'
+                mode: '0644'
                 cap_mon: 'allow r'
                 cap_osd:
                   str_replace:
@@ -143,9 +141,7 @@ outputs:
                       GLANCE_POOL: {get_param: GlanceRbdPoolName}
                       GNOCCHI_POOL: {get_param: GnocchiRbdPoolName}
               MANILA_CLIENT_KEY:
-                mode: '0640'
-                user: 'ceph'
-                group: 'ceph'
+                mode: '0644'
                 secret: {get_param: CephManilaClientKey}
                 cap_mon: 'allow r, allow command \"auth del\", allow command \"auth caps\", allow command \"auth get\", allow command \"auth get-or-create\"'
                 cap_mds: 'allow *'

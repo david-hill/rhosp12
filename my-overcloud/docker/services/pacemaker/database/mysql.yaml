@@ -51,10 +51,6 @@ parameters:
     type: string
     description: Specifies the default CA cert to use if TLS is used for
                  services in the internal network.
-  ConfigDebug:
-    default: false
-    description: Whether to run config management (e.g. Puppet) in debug mode.
-    type: boolean
 
 resources:
 
@@ -72,7 +68,7 @@ resources:
       RoleParameters: {get_param: RoleParameters}
 
 conditions:
-  puppet_debug_enabled: {get_param: ConfigDebug}
+
   internal_tls_enabled: {equals: [{get_param: EnableInternalTLS}, true]}
 
 outputs:
@@ -154,7 +150,6 @@ outputs:
               owner: mysql:mysql
               perm: '0600'
               optional: true
-      docker_config_scripts: {get_attr: [ContainersCommon, docker_config_scripts]}
       docker_config:
         step_1:
           mysql_data_ownership:
@@ -245,23 +240,27 @@ outputs:
             detach: false
             net: host
             user: root
-            command: # '/docker_puppet_apply.sh "STEP" "TAGS" "CONFIG" "DEBUG"'
-              list_concat:
-                - - '/docker_puppet_apply.sh'
-                  - '2'
-                  - 'file,file_line,concat,augeas,pacemaker::resource::bundle,pacemaker::property,pacemaker::resource::ocf,pacemaker::constraint::order,pacemaker::constraint::colocation,galera_ready,mysql_database,mysql_grant,mysql_user'
-                  - 'include ::tripleo::profile::base::pacemaker;include ::tripleo::profile::pacemaker::database::mysql_bundle'
-                - if:
-                  - puppet_debug_enabled
-                  - - '--debug'
-                  - - ''
+            command:
+              - '/bin/bash'
+              - '-c'
+              - str_replace:
+                  template:
+                    list_join:
+                      - '; '
+                      - - "cp -a /tmp/puppet-etc/* /etc/puppet; echo '{\"step\": 2}' > /etc/puppet/hieradata/docker.json"
+                        - "FACTER_uuid=docker puppet apply --tags file,file_line,concat,augeas,TAGS -v -e 'CONFIG'"
+                  params:
+                    TAGS: 'pacemaker::resource::bundle,pacemaker::property,pacemaker::resource::ocf,pacemaker::constraint::order,pacemaker::constraint::colocation,galera_ready,mysql_database,mysql_grant,mysql_user'
+                    CONFIG: 'include ::tripleo::profile::base::pacemaker;include ::tripleo::profile::pacemaker::database::mysql_bundle'
             image: {get_param: DockerMysqlImage}
             volumes:
-              list_concat:
-                - {get_attr: [ContainersCommon, docker_puppet_apply_volumes]}
-                - - /etc/corosync/corosync.conf:/etc/corosync/corosync.conf:ro
-                  - /dev/shm:/dev/shm:rw
-                  - /var/lib/mysql:/var/lib/mysql:rw
+              - /etc/hosts:/etc/hosts:ro
+              - /etc/localtime:/etc/localtime:ro
+              - /etc/puppet:/tmp/puppet-etc:ro
+              - /usr/share/openstack-puppet/modules:/usr/share/openstack-puppet/modules:ro
+              - /etc/corosync/corosync.conf:/etc/corosync/corosync.conf:ro
+              - /dev/shm:/dev/shm:rw
+              - /var/lib/mysql:/var/lib/mysql:rw
       host_prep_tasks:
         - name: create /var/lib/mysql
           file:
@@ -325,7 +324,7 @@ outputs:
           register: mariadb_image_id
         - block:
             - name: Get a list of container using Mariadb image
-              shell: "docker ps -a -q -f 'ancestor={{mariadb_image_id.stdout}}'"
+              shell: "docker ps -q -f 'ancestor={{mariadb_image_id.stdout}}'"
               register: mariadb_containers_to_destroy
             # It will be recreated with the delpoy step.
             - name: Remove any container using the same Mariadb image

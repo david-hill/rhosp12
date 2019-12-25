@@ -36,9 +36,6 @@ parameters:
     default: {}
     description: Parameters specific to the role
     type: json
-  CephClientUserName:
-    default: openstack
-    type: string
 
 resources:
 
@@ -94,13 +91,6 @@ outputs:
             - path: /var/log/gnocchi
               owner: gnocchi:gnocchi
               recurse: true
-            - path:
-                str_replace:
-                  template: /etc/ceph/ceph.client.USER.keyring
-                  params:
-                    USER: {get_param: CephClientUserName}
-              owner: gnocchi:gnocchi
-              perm: '0600'
       docker_config:
         step_5:
           gnocchi_metricd:
@@ -123,28 +113,11 @@ outputs:
           file:
             path: /var/log/containers/gnocchi
             state: directory
-        - name: gnocchi logs readme
-          copy:
-            dest: /var/log/gnocchi/readme.txt
-            content: |
-              Log files from gnocchi containers can be found under
-              /var/log/containers/gnocchi and /var/log/containers/httpd/gnocchi-api.
-          ignore_errors: true
         - name: ensure ceph configurations exist
           file:
             path: /etc/ceph
             state: directory
       upgrade_tasks:
-        - name: Check if gnocchi_metricd is deployed
-          command: systemctl is-enabled --quiet openstack-gnocchi-metricd
-          tags: common
-          ignore_errors: True
-          register: gnocchi_metricd_enabled
-        - name: "PreUpgrade step0,validation: Check service openstack-gnocchi-metricd is running"
-          command: systemctl is-active --quiet openstack-gnocchi-metricd
-          when: gnocchi_metricd_enabled.rc == 0
-          tags: step0,validation
         - name: Stop and disable openstack-gnocchi-metricd service
           tags: step2
-          when: gnocchi_metricd_enabled.rc == 0
           service: name=openstack-gnocchi-metricd.service state=stopped enabled=no

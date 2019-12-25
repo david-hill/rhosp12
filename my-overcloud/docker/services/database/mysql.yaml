@@ -124,8 +124,7 @@ outputs:
             user: root
             volumes:
               - /var/log/containers/mysql:/var/log/mariadb
-              - /var/lib/mysql:/var/lib/mysql
-            command: ['/bin/bash', '-c', 'chown -R mysql:mysql /var/log/mariadb /var/lib/mysql']
+            command: ['/bin/bash', '-c', 'chown -R mysql:mysql /var/log/mariadb']
         step_2:
           mysql_bootstrap:
             start_order: 1
@@ -203,7 +202,7 @@ outputs:
           volumes:
             list_concat:
             -
-              - /var/lib/mysql:/var/lib/mysql/:rw
+              - /var/lib/mysql:/var/lib/mysql/:ro
               - /var/log/containers/mysql:/var/log/mariadb
               - /var/lib/config-data/mysql/root:/root:ro #provides .my.cnf
             - if:
@@ -227,24 +226,7 @@ outputs:
           with_items:
             - /var/log/containers/mysql
             - /var/lib/mysql
-        - name: mysql logs readme
-          copy:
-            dest: /var/log/mariadb/readme.txt
-            content: |
-              Log files from mysql containers can be found under
-              /var/log/containers/mysql.
-          ignore_errors: true
       upgrade_tasks:
-        - name: Check if mysql service is deployed
-          command: systemctl is-enabled --quiet mariadb
-          tags: common
-          ignore_errors: True
-          register: mariadb_enabled
-        - name: "PreUpgrade step0,validation: Check if mysql service is running"
-          command: systemctl is-active --quiet mariadb
-          when: mariadb_enabled.rc == 0
-          tags: step0,validation
         - name: Stop and disable mysql service
           tags: step2
-          when: mariadb_enabled.rc == 0
           service: name=mariadb state=stopped enabled=no

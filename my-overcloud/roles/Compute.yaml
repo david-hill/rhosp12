@@ -9,6 +9,7 @@
     - InternalApi
     - Tenant
     - Storage
+  HostnameFormatDefault: '%stackname%-novacompute-%index%'
   # Deprecated & backward-compatible values (FIXME: Make parameters consistent)
   # Set uses_deprecated_params to True if any deprecated params are used.
   uses_deprecated_params: True

@@ -69,18 +69,13 @@ outputs:
         step_config: *step_config
         config_image: {get_param: DockerIscsidConfigImage}
         volumes:
-          # NOTE(bogdando) Containerized or running on baremetal services
-          # on a node must use the same iSCSI Qualified Name (IQN).
-          # However, overcloud nodes must have a unique IQN. Allow full
-          # (write) access to /etc/iscsi so that puppet ensures the IQN
-          # is unique and is reset once, and only once.
           - /etc/iscsi:/etc/iscsi
       kolla_config:
         /var/lib/kolla/config_files/iscsid.json:
           command: /usr/sbin/iscsid -f
           config_files:
             - source: "/var/lib/kolla/config_files/src-iscsid/*"
-              dest: "/etc/iscsi/"
+              dest: "/"
               merge: true
               preserve_properties: true
       docker_config:
@@ -100,7 +95,7 @@ outputs:
                   - /run/:/run/
                   - /sys:/sys
                   - /lib/modules:/lib/modules:ro
-                  - /etc/iscsi:/var/lib/kolla/config_files/src-iscsid:ro
+                  - /var/lib/config-data/puppet-generated/iscsid/:/var/lib/kolla/config_files/src-iscsid:ro
             environment:
               - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
       host_prep_tasks:
@@ -111,29 +106,19 @@ outputs:
           service: name=iscsid.socket state=stopped enabled=no
           when: stat_iscsid_socket.stat.exists
       upgrade_tasks:
-        - name: Check if iscsid service is deployed
-          tags: common
-          ignore_errors: True
-          command: systemctl is-enabled --quiet iscsid
-          register: iscsid_enabled
-        - name: "PreUpgrade step0,validation: Check if iscsid is running"
-          command: systemctl is-active --quiet iscsid
-          when: iscsid_enabled.rc == 0
-          tags: step0,validation
+        - name: stat /lib/systemd/system/iscsid.service
+          tags: step2
+          stat: path=/lib/systemd/system/iscsid.service
+          register: stat_iscsid_service
         - name: Stop and disable iscsid service
           tags: step2
-          when: iscsid_enabled.rc == 0
           service: name=iscsid state=stopped enabled=no
-        - name: Check if iscsid.socket service is deployed
-          tags: common
-          command: systemctl is-enabled --quiet iscsid.socket
-          ignore_errors: True
-          register: iscsid_socket_enabled
-        - name: "PreUpgrade step0,validation: Check if iscsid.socket is running"
-          command: systemctl is-active --quiet iscsid.socket
-          when: iscsid_socket_enabled.rc == 0
-          tags: step0,validation
+          when: (stat_iscsid_service.stat|default('')).exists|default(false)
+        - name: stat /lib/systemd/system/iscsid.socket
+          tags: step2
+          stat: path=/lib/systemd/system/iscsid.socket
+          register: stat_iscsid_socket
         - name: Stop and disable iscsid.socket service
           tags: step2
-          when: iscsid_socket_enabled.rc == 0
           service: name=iscsid.socket state=stopped enabled=no
+          when: (stat_iscsid_socket.stat|default('')).exists|default(false)

@@ -40,9 +40,6 @@ parameters:
     default: false
     description: Remove package if the service is being disabled during upgrade
     type: boolean
-  CephClientUserName:
-    default: openstack
-    type: string
 
 resources:
 
@@ -61,9 +58,6 @@ resources:
       DefaultPasswords: {get_param: DefaultPasswords}
       RoleName: {get_param: RoleName}
       RoleParameters: {get_param: RoleParameters}
-
-  CinderCommon:
-    type: ./cinder-common.yaml
 
 outputs:
   role_data:
@@ -97,10 +91,6 @@ outputs:
               dest: "/etc/ceph/"
               merge: true
               preserve_properties: true
-            - source: "/var/lib/kolla/config_files/src-iscsid/*"
-              dest: "/etc/iscsi/"
-              merge: true
-              preserve_properties: true
           permissions:
             - path: /var/lib/cinder
               owner: cinder:cinder
@@ -108,13 +98,6 @@ outputs:
             - path: /var/log/cinder
               owner: cinder:cinder
               recurse: true
-            - path:
-                str_replace:
-                  template: /etc/ceph/ceph.client.USER.keyring
-                  params:
-                    USER: {get_param: CephClientUserName}
-              owner: cinder:cinder
-              perm: '0600'
       docker_config:
         step_3:
           cinder_backup_init_logs:
@@ -129,10 +112,24 @@ outputs:
           cinder_backup:
             image: *cinder_backup_image
             net: host
-            privileged: true
+            privileged: false
             restart: always
-            volumes: {get_attr: [CinderCommon, cinder_backup_volumes]}
-            environment: {get_attr: [CinderCommon, cinder_backup_environment]}
+            volumes:
+              list_concat:
+                - {get_attr: [ContainersCommon, volumes]}
+                -
+                  - /var/lib/kolla/config_files/cinder_backup.json:/var/lib/kolla/config_files/config.json:ro
+                  - /var/lib/config-data/puppet-generated/cinder/:/var/lib/kolla/config_files/src:ro
+                  - /etc/iscsi:/etc/iscsi
+                  - /etc/ceph:/var/lib/kolla/config_files/src-ceph:ro
+                  - /dev/:/dev/
+                  - /run/:/run/
+                  - /sys:/sys
+                  - /lib/modules:/lib/modules:ro
+                  - /var/lib/cinder:/var/lib/cinder
+                  - /var/log/containers/cinder:/var/log/cinder
+            environment:
+              - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
       host_prep_tasks:
         - name: create persistent directories
           file:
@@ -141,13 +138,6 @@ outputs:
           with_items:
             - /var/lib/cinder
             - /var/log/containers/cinder
-        - name: cinder logs readme
-          copy:
-            dest: /var/log/cinder/readme.txt
-            content: |
-              Log files from cinder containers can be found under
-              /var/log/containers/cinder and /var/log/containers/httpd/cinder-api.
-          ignore_errors: true
         - name: ensure ceph configurations exist
           file:
             path: /etc/ceph

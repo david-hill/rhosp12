@@ -68,13 +68,9 @@ parameters:
     type: string
     description: Specifies the default CA cert to use if TLS is used for
                  services in the internal network.
-  ConfigDebug:
-    default: false
-    description: Whether to run config management (e.g. Puppet) in debug mode.
-    type: boolean
 
 conditions:
-  puppet_debug_enabled: {get_param: ConfigDebug}
+
   internal_tls_enabled: {equals: [{get_param: EnableInternalTLS}, true]}
 
 resources:
@@ -118,21 +114,21 @@ outputs:
         config_image: {get_param: DockerHAProxyConfigImage}
         volumes:
           list_concat:
-            - - list_join:
-                - ':'
-                - - {get_param: DeployedSSLCertificatePath}
-                  - {get_param: DeployedSSLCertificatePath}
-                  - 'ro'
-              - if:
-                - internal_tls_enabled
-                - - /etc/pki/tls/certs/haproxy:/etc/pki/tls/certs/haproxy:ro
-                  - /etc/pki/tls/private/haproxy:/etc/pki/tls/private/haproxy:ro
-                  - list_join:
-                    - ':'
-                    - - {get_param: InternalTLSCAFile}
-                      - {get_param: InternalTLSCAFile}
-                      - 'ro'
-                - null
+          - - list_join:
+              - ':'
+              - - {get_param: DeployedSSLCertificatePath}
+                - {get_param: DeployedSSLCertificatePath}
+                - 'ro'
+          - if:
+            - internal_tls_enabled
+            - - /etc/pki/tls/certs/haproxy:/etc/pki/tls/certs/haproxy:ro
+              - /etc/pki/tls/private/haproxy:/etc/pki/tls/private/haproxy:ro
+              - list_join:
+                  - ':'
+                  - - {get_param: InternalTLSCAFile}
+                    - {get_param: InternalTLSCAFile}
+                    - 'ro'
+            - null
       kolla_config:
         /var/lib/kolla/config_files/haproxy.json:
           command: /usr/sbin/haproxy-systemd-wrapper -f /etc/haproxy/haproxy.cfg
@@ -151,7 +147,6 @@ outputs:
               owner: haproxy:haproxy
               recurse: true
               optional: true
-      docker_config_scripts: {get_attr: [ContainersCommon, docker_config_scripts]}
       docker_config:
         step_1:
           haproxy_firewall:
@@ -160,20 +155,23 @@ outputs:
             net: host
             user: root
             privileged: true
-            command: # '/docker_puppet_apply.sh "STEP" "TAGS" "CONFIG" "DEBUG"'
-              list_concat:
-                - - '/docker_puppet_apply.sh'
-                  - '1'
-                  - 'tripleo::firewall::rule'
-                  - {get_attr: [HAProxyBase, role_data, step_config]}
-                - if:
-                   - puppet_debug_enabled
-                   - - '--debug --verbose'
-                   - - ''
+            command:
+              - '/bin/bash'
+              - '-c'
+              - str_replace:
+                  template:
+                    list_join:
+                      - '; '
+                      - - "cp -a /tmp/puppet-etc/* /etc/puppet; echo '{\"step\": 1}' > /etc/puppet/hieradata/docker.json"
+                        - "FACTER_uuid=docker puppet apply --tags TAGS -v -e 'CONFIG'"
+                  params:
+                    TAGS: 'tripleo::firewall::rule'
+                    CONFIG: *step_config
             volumes:
               list_concat:
-                - {get_attr: [ContainersCommon, docker_puppet_apply_volumes]}
-                - - /var/lib/kolla/config_files/haproxy.json:/var/lib/kolla/config_files/config.json:ro
+                - {get_attr: [ContainersCommon, volumes]}
+                -
+                  - /var/lib/kolla/config_files/haproxy.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/haproxy/:/var/lib/kolla/config_files/src:ro
                   # puppet saves iptables rules in /etc/sysconfig
                   - /etc/sysconfig:/etc/sysconfig:rw
@@ -181,6 +179,8 @@ outputs:
                   # the necessary bit and prevent systemd to try to reload the service in the container
                   - /usr/libexec/iptables:/usr/libexec/iptables:ro
                   - /usr/libexec/initscripts/legacy-actions:/usr/libexec/initscripts/legacy-actions:ro
+                  - /etc/puppet:/tmp/puppet-etc:ro
+                  - /usr/share/openstack-puppet/modules:/usr/share/openstack-puppet/modules:ro
             environment:
               - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
           haproxy:

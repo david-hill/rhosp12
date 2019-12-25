@@ -44,13 +44,6 @@ parameters:
     description: Port of the OVN Southbound DB server
     type: number
     default: 6642
-  ConfigDebug:
-    default: false
-    description: Whether to run config management (e.g. Puppet) in debug mode.
-    type: boolean
-
-conditions:
-  puppet_debug_enabled: {get_param: ConfigDebug}
 
 resources:
 
@@ -103,7 +96,6 @@ outputs:
               merge: true
               preserve_properties: true
               optional: true
-      docker_config_scripts: {get_attr: [ContainersCommon, docker_config_scripts]}
       docker_config:
         step_3:
           ovn_dbs_init_bundle:
@@ -112,22 +104,30 @@ outputs:
             net: host
             user: root
             config_volume: 'ovn_dbs_init_bundle'
-            command: # '/docker_puppet_apply.sh "STEP" "TAGS" "CONFIG" "DEBUG"'
-              list_concat:
-                - - '/docker_puppet_apply.sh'
-                  - '3'
-                  - 'file,file_line,concat,augeas,pacemaker::resource::bundle,pacemaker::property,pacemaker::resource::ip,pacemaker::resource::ocf,pacemaker::constraint::order,pacemaker::constraint::colocation'
-                  - 'include ::tripleo::profile::base::pacemaker;include ::tripleo::profile::pacemaker::ovn_dbs_bundle'
-                - if:
-                  - puppet_debug_enabled
-                  - - '--debug'
-                  - - ''
+            command:
+              - '/bin/bash'
+              - '-c'
+              - str_replace:
+                  template:
+                    list_join:
+                      - '; '
+                      - - "cp -a /tmp/puppet-etc/* /etc/puppet; echo '{\"step\": 3}' > /etc/puppet/hieradata/docker.json"
+                        - "FACTER_uuid=docker puppet apply --tags file,file_line,concat,augeas,TAGS -v -e 'CONFIG'"
+                  params:
+                    TAGS: 'pacemaker::resource::bundle,pacemaker::property,pacemaker::resource::ip,pacemaker::resource::ocf,pacemaker::constraint::order,pacemaker::constraint::colocation'
+                    CONFIG:
+                      list_join:
+                        - ';'
+                        - - 'include ::tripleo::profile::base::pacemaker'
+                          - 'include ::tripleo::profile::pacemaker::ovn_dbs_bundle'
             image: *ovn_dbs_config_image
             volumes:
-              list_concat:
-                - {get_attr: [ContainersCommon, docker_puppet_apply_volumes]}
-                - - /etc/corosync/corosync.conf:/etc/corosync/corosync.conf:ro
-                  - /dev/shm:/dev/shm:rw
+              - /etc/hosts:/etc/hosts:ro
+              - /etc/localtime:/etc/localtime:ro
+              - /etc/puppet:/tmp/puppet-etc:ro
+              - /usr/share/openstack-puppet/modules:/usr/share/openstack-puppet/modules:ro
+              - /etc/corosync/corosync.conf:/etc/corosync/corosync.conf:ro
+              - /dev/shm:/dev/shm:rw
       host_prep_tasks:
         - name: create persistent directories
           file:
@@ -136,13 +136,6 @@ outputs:
           with_items:
             - /var/log/containers/openvswitch
             - /var/lib/openvswitch/ovn
-        - name: openvswitch logs readme
-          copy:
-            dest: /var/log/openvswitch/readme.txt
-            content: |
-              Log files from openvswitch containers can be found under
-              /var/log/containers/openvswitch.
-          ignore_errors: true
       upgrade_tasks:
         - name: Stop and disable ovn-northd service
           tags: step2

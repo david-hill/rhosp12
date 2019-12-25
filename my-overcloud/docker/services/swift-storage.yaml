@@ -186,7 +186,7 @@ outputs:
               merge: true
               preserve_properties: true
           permissions:
-            - path: /var/cache/swift
+            - path: /var/log/swift
               owner: swift:swift
               recurse: true
         /var/lib/kolla/config_files/swift_rsync.json:
@@ -219,9 +219,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_account_auditor.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: &kolla_env
               - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
           swift_account_reaper:
@@ -235,9 +236,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_account_reaper.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_account_replicator:
             image: *swift_account_image
@@ -250,9 +252,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_account_replicator.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_account_server:
             image: *swift_account_image
@@ -265,9 +268,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_account_server.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_container_auditor:
             image: &swift_container_image {get_param: DockerSwiftContainerImage}
@@ -280,9 +284,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_container_auditor.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_container_replicator:
             image: *swift_container_image
@@ -295,9 +300,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_container_replicator.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_container_updater:
             image: *swift_container_image
@@ -310,9 +316,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_container_updater.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_container_server:
             image: *swift_container_image
@@ -325,9 +332,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_container_server.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_object_auditor:
             image: &swift_object_image {get_param: DockerSwiftObjectImage}
@@ -340,9 +348,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_object_auditor.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_object_expirer:
             image: &swift_proxy_image {get_param: DockerSwiftProxyImage}
@@ -355,9 +364,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_object_expirer.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_object_replicator:
             image: *swift_object_image
@@ -370,9 +380,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_object_replicator.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_object_updater:
             image: *swift_object_image
@@ -385,9 +396,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_object_updater.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_object_server:
             image: *swift_object_image
@@ -400,9 +412,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_object_server.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  - /var/cache/swift:/var/cache/swift
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
           swift_rsync:
             image: *swift_object_image
@@ -416,33 +429,20 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/swift_rsync.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/swift/:/var/lib/kolla/config_files/src:ro
+                  - /run:/run
                   - /srv/node:/srv/node
                   - /dev:/dev
-                  # /var/cache/swift not needed in this container
+                  - /var/log/containers/swift:/var/log/swift
             environment: *kolla_env
 
       host_prep_tasks:
-        - name: stat /var/log/containers/swift
-          stat:
-            path: /var/log/containers/swift
-          register: var_log_containers_swift_stat
-        - name: remove /var/log/containers/swift if it is a directory
-          file:
-            path: /var/log/containers/swift
-            state: absent
-          when: var_log_containers_swift_stat.stat.isdir is defined and var_log_containers_swift_stat.stat.isdir
         - name: create persistent directories
           file:
             path: "{{ item }}"
             state: directory
           with_items:
+            - /var/log/containers/swift
             - /srv/node
-            - /var/log/swift
-        - name: Create swift logging symlink
-          file:
-            src: /var/log/swift
-            dest: /var/log/containers/swift
-            state: link
         - name: Format SwiftRawDisks
           filesystem:
             fstype: xfs
@@ -466,11 +466,9 @@ outputs:
                 for_each:
                   DEVICE: {get_param: SwiftRawDisks}
       upgrade_tasks:
-        - name: Check if swift storage services are deployed
-          command: systemctl is-enabled --quiet "{{ item }}"
-          tags: common
-          register: swift_services_enabled
-          ignore_errors: true
+        - name: Stop and disable swift storage services
+          tags: step2
+          service: name={{ item }} state=stopped enabled=no
           with_items:
             - openstack-swift-account-auditor
             - openstack-swift-account-reaper
@@ -484,16 +482,6 @@ outputs:
             - openstack-swift-object-replicator
             - openstack-swift-object-updater
             - openstack-swift-object
-        - name: "PreUpgrade step0,validation: Check swift storage services are running"
-          command: systemctl is-active --quiet "{{ item.item }}"
-          tags: step0,validation
-          with_items: "{{ swift_services_enabled.results }}"
-          when: item.rc == 0
-        - name: Stop and disable swift storage services
-          tags: step2
-          service: name={{ item.item }} state=stopped enabled=no
-          with_items: "{{ swift_services_enabled.results }}"
-          when: item.rc == 0
         - name: Remove openstack-swift-container,object,account packages if operator requests it
           yum: name={{ item }} state=removed
           tags: step2
@@ -509,8 +497,3 @@ outputs:
         - name: Restart xinetd service after rsync removal
           tags: step2
           service: name=xinetd state=restarted
-      update_tasks:
-        - name: Ensure rsyncd pid file is absent
-          file:
-            path: /var/run/rsyncd.pid
-            state: absent

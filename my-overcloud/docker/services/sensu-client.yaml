@@ -144,24 +144,7 @@ outputs:
           file:
             path: /var/log/containers/sensu
             state: directory
-        - name: sensu logs readme
-          copy:
-            dest: /var/log/sensu/readme.txt
-            content: |
-              Log files from sensu containers can be found under
-              /var/log/containers/sensu.
-          ignore_errors: true
       upgrade_tasks:
-        - name: Check if sensu client is  deployed
-          command: systemctl is-enabled --quiet sensu-client
-          tags: common
-          ignore_errors: True
-          register: sensu_enabled
-        - name: "PreUpgrade step0,validation: Check if sensu client is running"
-          command: systemctl is-active --quiet sensu-client
-          when: sensu_enabled.rc == 0
-          tags: step0,validation
         - name: Stop and disable sensu-client service
           tags: step2
-          when: sensu_enabled.rc == 0
-          service: name=sensu-client state=stopped enabled=no
+          service: name=sensu-client.service state=stopped enabled=no

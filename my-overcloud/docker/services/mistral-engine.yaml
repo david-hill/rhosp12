@@ -112,24 +112,7 @@ outputs:
           file:
             path: /var/log/containers/mistral
             state: directory
-        - name: mistral logs readme
-          copy:
-            dest: /var/log/mistral/readme.txt
-            content: |
-              Log files from mistral containers can be found under
-              /var/log/containers/mistral.
-          ignore_errors: true
       upgrade_tasks:
-        - name: Check if mistral engine is deployed
-          command: systemctl is-enabled --quiet openstack-mistral-engine
-          tags: common
-          ignore_errors: True
-          register: mistral_engine_enabled
-        - name: "PreUpgrade step0,validation: Check if openstack-mistral-engine is running"
-          command: systemctl is-active --quiet openstack-mistral-engine
-          when: mistral_engine_enabled.rc == 0
-          tags: step0,validation
         - name: Stop and disable mistral_engine service
           tags: step2
-          when: mistral_engine_enabled.rc == 0
           service: name=openstack-mistral-engine state=stopped enabled=no
