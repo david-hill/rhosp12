@@ -60,7 +60,6 @@
     - OS::TripleO::Services::CinderBackendDellSc
     - OS::TripleO::Services::CinderBackendDellEMCUnity
     - OS::TripleO::Services::CinderBackendDellEMCVMAXISCSI
-    - OS::TripleO::Services::CinderBackendDellEMCVNX
     - OS::TripleO::Services::CinderBackendNetApp
     - OS::TripleO::Services::CinderBackendScaleIO
     - OS::TripleO::Services::CinderBackendVRTSHyperScale
@@ -95,6 +94,7 @@
     - OS::TripleO::Services::Keystone
     - OS::TripleO::Services::ManilaApi
     - OS::TripleO::Services::ManilaBackendCephFs
+    - OS::TripleO::Services::ManilaBackendGeneric
     - OS::TripleO::Services::ManilaBackendIsilon
     - OS::TripleO::Services::ManilaBackendNetapp
     - OS::TripleO::Services::ManilaBackendUnity

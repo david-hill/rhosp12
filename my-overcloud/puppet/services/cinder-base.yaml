@@ -94,7 +94,7 @@ parameters:
     type: string
     description: >
         Cron to move deleted instances to another table - Age
-    default: '30'
+    default: '0'
   CinderCronDbPurgeDestination:
     type: string
     description: >

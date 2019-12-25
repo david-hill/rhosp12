@@ -69,16 +69,6 @@ resources:
   MySQLClient:
     type: ../../puppet/services/database/mysql-client.yaml
 
-  NovaComputeCommon:
-    type: ./nova-compute-common.yaml
-    properties:
-      EndpointMap: {get_param: EndpointMap}
-      ServiceData: {get_param: ServiceData}
-      ServiceNetMap: {get_param: ServiceNetMap}
-      DefaultPasswords: {get_param: DefaultPasswords}
-      RoleName: {get_param: RoleName}
-      RoleParameters: {get_param: RoleParameters}
-
   NovaComputeBase:
     type: ../../puppet/services/nova-compute.yaml
     properties:
@@ -117,16 +107,15 @@ outputs:
               dest: "/"
               merge: true
               preserve_properties: true
-            - source: "/var/lib/kolla/config_files/src-iscsid/*"
-              dest: "/etc/iscsi/"
-              merge: true
-              preserve_properties: true
             - source: "/var/lib/kolla/config_files/src-ceph/"
               dest: "/etc/ceph/"
               merge: true
               preserve_properties: true
           permissions:
             - path: /var/log/nova
+              owner: nova:nova
+              recurse: true
+            - path: /var/lib/nova
               owner: nova:nova
               recurse: true
             - path:
@@ -136,21 +125,10 @@ outputs:
                     USER: {get_param: CephClientUserName}
               owner: nova:nova
               perm: '0600'
-      docker_config_scripts: {get_attr: [NovaComputeCommon, docker_config_scripts]}
       docker_config:
-        step_3:
-          nova_statedir_owner:
-            image: &nova_compute_image {get_param: DockerNovaComputeImage}
-            user: root
-            privileged: false
-            detach: false
-            volumes:
-              - /var/lib/nova:/var/lib/nova:shared
-              - /var/lib/docker-config-scripts/:/docker-config-scripts/
-            command: "/docker-config-scripts/nova_statedir_ownership.py"
         step_4:
           nova_compute:
-            image: *nova_compute_image
+            image: &nova_compute_image {get_param: DockerNovaComputeImage}
             ipc: host
             net: host
             privileged: true
@@ -163,10 +141,10 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/nova_compute.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/nova_libvirt/:/var/lib/kolla/config_files/src:ro
-                  - /etc/iscsi:/var/lib/kolla/config_files/src-iscsid:ro
                   - /etc/ceph:/var/lib/kolla/config_files/src-ceph:ro
                   - /dev:/dev
                   - /lib/modules:/lib/modules:ro
+                  - /etc/iscsi:/etc/iscsi
                   - /run:/run
                   - /var/lib/nova:/var/lib/nova:shared
                   - /var/lib/libvirt:/var/lib/libvirt
@@ -186,7 +164,6 @@ outputs:
           with_items:
             - /var/log/containers/nova
             - /var/lib/nova
-            - /var/lib/nova/instances
             - /var/lib/libvirt
         - name: nova logs readme
           copy:
@@ -200,11 +177,6 @@ outputs:
             path: /etc/ceph
             state: directory
       upgrade_tasks:
-        - name: Check if nova_compute is deployed
-          command: systemctl is-enabled --quiet openstack-nova-compute
-          tags: common
-          ignore_errors: True
-          register: nova_compute_enabled
         - name: Set compute upgrade level to auto
           tags: step1
           ini_file:
@@ -212,18 +184,9 @@ outputs:
               template: "dest=/etc/nova/nova.conf section=upgrade_levels option=compute value=LEVEL"
               params:
                 LEVEL: {get_param: UpgradeLevelNovaCompute}
-        - name: "PreUpgrade step0,validation: Check service openstack-nova-compute is running"
-          command: systemctl is-active --quiet openstack-nova-compute
-          tags: step0,validation
-          when: nova_compute_enabled.rc == 0
         - name: Stop and disable nova-compute service
           tags: step2
-          when: nova_compute_enabled.rc == 0
           service: name=openstack-nova-compute state=stopped enabled=no
-        - name: Set upgrade marker in nova statedir
-          tags: step2
-          when: nova_compute_enabled.rc == 0
-          file: path=/var/lib/nova/upgrade_marker state=touch owner=nova group=nova
         - name: Remove openstack-nova-compute package if operator requests it
           yum: name=openstack-nova-compute state=removed
           tags: step2

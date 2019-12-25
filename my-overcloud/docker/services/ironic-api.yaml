@@ -36,14 +36,6 @@ parameters:
     default: {}
     description: Parameters specific to the role
     type: json
-  EnableOnlineDataMigrations:
-    type: boolean
-    description: Enable post-upgrade online data migrations.
-    default: true
-
-conditions:
-
-  online_data_migrations_enabled: {equals: [{get_param: EnableOnlineDataMigrations}, true]}
 
 resources:
 
@@ -62,16 +54,6 @@ resources:
       DefaultPasswords: {get_param: DefaultPasswords}
       RoleName: {get_param: RoleName}
       RoleParameters: {get_param: RoleParameters}
-
-  OnlineDataMigrationsCommand:
-    type: OS::Heat::Value
-    properties:
-      type: string
-      value:
-        if:
-          - online_data_migrations_enabled
-          - "/usr/bin/bootstrap_host_exec ironic_api su ironic -s /bin/bash -c 'ironic-dbsync --config-file /etc/ironic/ironic.conf online_data_migrations'"
-          - "/usr/bin/echo Online data migrations disabled via EnableOnlineDataMigrations parameter"
 
 outputs:
   role_data:
@@ -152,22 +134,6 @@ outputs:
                   - /var/log/containers/httpd/ironic-api:/var/log/httpd
             environment:
               - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
-        step_5:
-          ironic_online_migrations:
-            start_order: 2
-            image: *ironic_api_image
-            net: host
-            privileged: false
-            detach: false
-            user: root
-            volumes:
-              list_concat:
-                - {get_attr: [ContainersCommon, volumes]}
-                -
-                  - /var/lib/config-data/ironic_api/etc/ironic:/etc/ironic:ro
-                  - /var/log/containers/ironic:/var/log/ironic
-                  - /var/log/containers/httpd/ironic-api:/var/log/httpd
-            command: {get_attr: [OnlineDataMigrationsCommand, value]}
       host_prep_tasks:
         - name: create persistent logs directory
           file:

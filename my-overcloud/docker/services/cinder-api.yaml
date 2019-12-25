@@ -39,10 +39,6 @@ parameters:
   EnableInternalTLS:
     type: boolean
     default: false
-  EnableOnlineDataMigrations:
-    type: boolean
-    description: Enable post-upgrade online data migrations.
-    default: true
   UpgradeRemoveUnusedPackages:
     default: false
     description: Remove package if the service is being disabled during upgrade
@@ -51,7 +47,6 @@ parameters:
 conditions:
 
   internal_tls_enabled: {equals: [{get_param: EnableInternalTLS}, true]}
-  online_data_migrations_enabled: {equals: [{get_param: EnableOnlineDataMigrations}, true]}
 
 resources:
 
@@ -70,16 +65,6 @@ resources:
       DefaultPasswords: {get_param: DefaultPasswords}
       RoleName: {get_param: RoleName}
       RoleParameters: {get_param: RoleParameters}
-
-  OnlineDataMigrationsCommand:
-    type: OS::Heat::Value
-    properties:
-      type: string
-      value:
-        if:
-          - online_data_migrations_enabled
-          - "/usr/bin/bootstrap_host_exec cinder_api su cinder -s /bin/bash -c 'cinder-manage db online_data_migrations'"
-          - "/usr/bin/echo Online data migrations disabled via EnableOnlineDataMigrations parameter"
 
 outputs:
   role_data:
@@ -181,23 +166,6 @@ outputs:
                       - ''
             environment:
               - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
-        step_5:
-          cinder_api_online_migrations:
-            start_order: 2
-            image: *cinder_api_image
-            net: host
-            privileged: false
-            detach: false
-            user: root
-            volumes:
-              list_concat:
-                - {get_attr: [ContainersCommon, volumes]}
-                -
-                  - /var/lib/config-data/cinder/etc/my.cnf.d/tripleo.cnf:/etc/my.cnf.d/tripleo.cnf:ro
-                  - /var/lib/config-data/cinder/etc/cinder/:/etc/cinder/:ro
-                  - /var/log/containers/cinder:/var/log/cinder
-                  - /var/log/containers/httpd/cinder-api:/var/log/httpd
-            command: {get_attr: [OnlineDataMigrationsCommand, value]}
           cinder_api_cron:
             image: *cinder_api_image
             net: host

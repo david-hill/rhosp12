@@ -10,7 +10,7 @@ BLOCKSTORAGE_HOSTS=${BLOCKSTORAGE_HOSTS:-""}
 OBJECTSTORAGE_HOSTS=${OBJECTSTORAGE_HOSTS:-""}
 CEPHSTORAGE_HOSTS=${CEPHSTORAGE_HOSTS:-""}
 SUBNODES_SSH_KEY=${SUBNODES_SSH_KEY:-"~/.ssh/id_rsa"}
-SSH_OPTIONS=${SSH_OPTIONS:-"-tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=Verbose -o PasswordAuthentication=no -o ConnectionAttempts=32"}
+SSH_OPTIONS="-tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=Verbose -o PasswordAuthentication=no -o ConnectionAttempts=32"
 OVERCLOUD_ROLES=${OVERCLOUD_ROLES:-"Controller Compute BlockStorage ObjectStorage CephStorage"}
 STACK_NAME=${STACK_NAME:-"overcloud"}
 
@@ -64,7 +64,7 @@ for role in $OVERCLOUD_ROLES; do
         rg_stack=$(openstack stack resource show $STACK_NAME $role -c physical_resource_id -f value)
     done
 
-    stacks=$(openstack stack resource list $rg_stack -c resource_name -c physical_resource_id -f json | jq -r "sort_by(.resource_name | tonumber) | .[] | .physical_resource_id")
+    stacks=$(openstack stack resource list $rg_stack -c resource_name -c physical_resource_id -f json | jq -r "sort_by(.resource_name) | .[] | .physical_resource_id")
 
     i=0
 

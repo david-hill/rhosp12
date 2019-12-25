@@ -49,8 +49,10 @@ resource_registry:
   OS::TripleO::Services::ComputeCeilometerAgent: ../docker/services/ceilometer-agent-compute.yaml
   OS::TripleO::Services::CeilometerAgentNotification: ../docker/services/ceilometer-agent-notification.yaml
   OS::TripleO::Services::Horizon: ../docker/services/horizon.yaml
-  OS::TripleO::Services::Iscsid: ../docker/services/iscsid.yaml
-  OS::TripleO::Services::Multipathd: ../docker/services/multipathd.yaml
+  # Because Cinder services currently run on bare metal (see FIXME), Iscsid
+  # and Multipathd must run there as well.
+  # OS::TripleO::Services::Iscsid: ../docker/services/iscsid.yaml
+  # OS::TripleO::Services::Multipathd: ../docker/services/multipathd.yaml
   OS::TripleO::Services::ContainersLogrotateCrond: ../docker/services/logrotate-crond.yaml
   # FIXME: Had to remove these to unblock containers CI. They should be put back when fixed.
   # OS::TripleO::Services::CinderApi: ../docker/services/cinder-api.yaml

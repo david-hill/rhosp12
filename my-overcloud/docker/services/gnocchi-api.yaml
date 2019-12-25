@@ -111,7 +111,7 @@ outputs:
         /var/lib/kolla/config_files/gnocchi_db_sync.json:
           command:
             str_replace:
-              template: /usr/bin/bootstrap_host_exec gnocchi_api /usr/bin/gnocchi-upgrade --sacks-number=SACK_NUM
+              template: /usr/bin/gnocchi-upgrade --sacks-number=SACK_NUM
               params:
                 SACK_NUM: {get_param: NumberOfStorageSacks}
           config_files: *gnocchi_api_kolla_config_files
@@ -126,15 +126,8 @@ outputs:
               - /var/log/containers/gnocchi:/var/log/gnocchi
               - /var/log/containers/httpd/gnocchi-api:/var/log/httpd
             command: ['/bin/bash', '-c', 'chown -R gnocchi:gnocchi /var/log/gnocchi']
-          gnocchi_init_lib:
-            image: *gnocchi_api_image
-            user: root
-            volumes:
-              - /var/lib/gnocchi:/var/lib/gnocchi:rw
-            command: ['/bin/bash', '-c', 'chown -R gnocchi:gnocchi /var/lib/gnocchi']
-        step_5:
+        step_4:
           gnocchi_db_sync:
-            start_order: 0
             image: *gnocchi_api_image
             net: host
             detach: false
@@ -146,15 +139,14 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/gnocchi_db_sync.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/gnocchi/:/var/lib/kolla/config_files/src:ro
-                  - /var/lib/gnocchi:/var/lib/gnocchi:rw
                   - /var/log/containers/gnocchi:/var/log/gnocchi
                   - /var/log/containers/httpd/gnocchi-api:/var/log/httpd
                   - /etc/ceph:/var/lib/kolla/config_files/src-ceph:ro
             environment:
               - KOLLA_CONFIG_STRATEGY=COPY_ALWAYS
+        step_5:
           gnocchi_api:
             image: *gnocchi_api_image
-            start_order: 1
             net: host
             privileged: false
             restart: always
@@ -162,7 +154,6 @@ outputs:
               list_concat:
                 - {get_attr: [ContainersCommon, volumes]}
                 -
-                  - /var/lib/gnocchi:/var/lib/gnocchi:rw
                   - /var/lib/kolla/config_files/gnocchi_api.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/gnocchi/:/var/lib/kolla/config_files/src:ro
                   - /var/log/containers/gnocchi:/var/log/gnocchi

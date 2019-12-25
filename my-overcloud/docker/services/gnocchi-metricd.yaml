@@ -104,7 +104,6 @@ outputs:
       docker_config:
         step_5:
           gnocchi_metricd:
-            start_order: 1
             image: {get_param: DockerGnocchiMetricdImage}
             net: host
             privileged: false
@@ -115,7 +114,6 @@ outputs:
                 -
                   - /var/lib/kolla/config_files/gnocchi_metricd.json:/var/lib/kolla/config_files/config.json:ro
                   - /var/lib/config-data/puppet-generated/gnocchi/:/var/lib/kolla/config_files/src:ro
-                  - /var/lib/gnocchi:/var/lib/gnocchi:rw
                   - /var/log/containers/gnocchi:/var/log/gnocchi
                   - /etc/ceph:/var/lib/kolla/config_files/src-ceph:ro
             environment:

@@ -77,7 +77,7 @@ parameters:
     description: >
       It can be used to override settings for one of the predefined pools, or to create
       additional ones. Example:
-      [{"name": "volumes", "pg_num": 64, "rule_name": "replicated_ruleset"}]
+      [{"name": "volumes", "pg_num": 64, "rule_name": ""}]
     default: []
     type: json
   CinderRbdPoolName:
@@ -229,7 +229,7 @@ outputs:
                       template:
                         name: <%pool%>
                         pg_num: {get_param: CephPoolDefaultPgNum}
-                        rule_name: replicated_ruleset
+                        rule_name: ""
                       for_each:
                         <%pool%>:
                           - {get_param: CinderRbdPoolName}
@@ -298,7 +298,6 @@ outputs:
                   rgw_keystone_admin_user: swift
                   rgw_keystone_admin_password: {get_param: SwiftPassword}
                   rgw_keystone_implicit_tenants: 'true'
-                  rgw_keystone_revocation_interval: '0'
                   rgw_s3_auth_use_keystone: 'true'
                 - {get_param: CephConfigOverrides}
           ntp_service_enabled: false

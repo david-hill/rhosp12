@@ -71,7 +71,6 @@ parameters:
       QdrNetwork: internal_api
       RedisNetwork: internal_api
       MysqlNetwork: internal_api
-      SnmpdNetwork: internal_api
       CephClusterNetwork: storage_mgmt
       CephMonNetwork: storage
       CephRgwNetwork: storage

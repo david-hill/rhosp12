@@ -183,35 +183,6 @@ outputs:
             - "%{hiera('mysql_bind_host')}"
       metadata_settings:
         get_attr: [ApacheServiceBase, role_data, metadata_settings]
-      update_tasks:
-        - when: step == "0"
-          block:
-            - name: get bootstrap nodeid
-              command: hiera -c /etc/puppet/hiera.yaml bootstrap_nodeid
-              register: bootstrap_node
-            - name: set is_bootstrap_node fact
-              set_fact: is_bootstrap_node={{bootstrap_node.stdout|lower == ansible_hostname|lower}}
-            - name: Check if cinder_api is running
-              command: systemctl is-active --quiet openstack-cinder-api
-              ignore_errors: True
-              register: cinder_api_active
-            - name: check for cinder running under apache (post upgrade)
-              shell: "httpd -t -D DUMP_VHOSTS | grep -q cinder"
-              register: cinder_apache
-              ignore_errors: true
-            - name: Check if httpd service is running
-              command: systemctl is-active --quiet httpd
-              ignore_errors: True
-              register: httpd_running
-            # Online migrations for Nova and Ironic are applied via
-            # containers, and they'd run even on minor update. As Cinder
-            # is not containerized yet, we need to run the migrations
-            # in update_tasks.
-            - name: Run online migrations for Cinder (non-containerized)
-              shell: cinder-manage db online_data_migrations
-              when:
-                - is_bootstrap_node
-                - (cinder_apache and httpd_running) or cinder_api_active
       upgrade_tasks:
         list_concat:
           - get_attr: [ApacheServiceBase, role_data, upgrade_tasks]

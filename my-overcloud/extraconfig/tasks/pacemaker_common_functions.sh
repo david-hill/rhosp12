@@ -401,9 +401,6 @@ function yum_pre_update {
     # No need to proceed if the ceph-osd package isn't installed
     if ! rpm -q ceph-osd >/dev/null 2>&1; then
         echo "ceph-osd package is not installed"
-        # Downstream only: ensure the Ceph OSD product key is removed if the
-        # ceph-osd package was previously removed.
-        rm -f /etc/pki/product/288.pem
         return
     fi
 
@@ -447,8 +444,4 @@ function yum_pre_update {
     echo "ceph-osd package is not required, but is preventing updates to other ceph packages"
     echo "Removing ceph-osd package to allow updates to other ceph packages"
     yum -y remove ceph-osd
-    if [ $? -eq 0 ]; then
-        # Downstream only: remove the Ceph OSD product key (rhbz#1500594)
-        rm -f /etc/pki/product/288.pem
-    fi
 }
